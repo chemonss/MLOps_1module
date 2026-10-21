@@ -1,1 +1,7 @@
 confluent-kafka==2.6.1
+clickhouse-connect>=0.8,<1
+catboost>=1.2,<2
+pandas>=2.2,<3
+numpy>=1.26,<3
+scikit-learn>=1.5,<2
+python-dateutil>=2.9,<3

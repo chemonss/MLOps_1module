@@ -1,6 +1,4 @@
-
-name: clickhouse-kafka-hw
-
+name: mlops-fraud
 services:
   kafka:
     image: apache/kafka:3.9.1
@@ -11,23 +9,18 @@ services:
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: broker,controller
       KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:29093
-
       KAFKA_LISTENERS: INTERNAL://:29092,EXTERNAL://:9092,CONTROLLER://:29093
       KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:29092,EXTERNAL://localhost:9092
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
-
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
-      KAFKA_NUM_PARTITIONS: 1
-
     volumes:
       - kafka_data:/var/lib/kafka/data
-
     healthcheck:
       test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:29092 >/dev/null 2>&1"]
       interval: 10s
@@ -40,11 +33,12 @@ services:
     depends_on:
       kafka:
         condition: service_healthy
-
     entrypoint: ["/bin/sh", "-c"]
     command:
-      - /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:29092 --create --if-not-exists --topic fraud_transactions --partitions 1 --replication-factor 1
-
+      - |
+        for topic in fraud_transactions fraud_scoring; do
+          /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:29092 --create --if-not-exists --topic "$$topic" --partitions 1 --replication-factor 1 || exit 1
+        done
     restart: "no"
 
   clickhouse:
@@ -52,21 +46,18 @@ services:
     ports:
       - "127.0.0.1:8123:8123"
       - "127.0.0.1:9000:9000"
-
     environment:
       CLICKHOUSE_DB: fraud
       CLICKHOUSE_USER: analyst
       CLICKHOUSE_PASSWORD: analyst_password
       CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: "1"
-
     volumes:
       - clickhouse_data:/var/lib/clickhouse
       - ./sql/01_schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
-
+      - ./sql/05_ml_schema.sql:/docker-entrypoint-initdb.d/05_ml_schema.sql:ro
     depends_on:
       kafka-init:
         condition: service_completed_successfully
-
     healthcheck:
       test: ["CMD-SHELL", "clickhouse-client --user analyst --password analyst_password --query 'SELECT 1' >/dev/null 2>&1"]
       interval: 10s
@@ -78,22 +69,78 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-
     profiles: ["tools"]
-
     depends_on:
       kafka-init:
         condition: service_completed_successfully
-
     environment:
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       KAFKA_TOPIC: fraud_transactions
-
     volumes:
       - ./data:/app/data:ro
-
     entrypoint: ["python", "scripts/produce_csv.py"]
+
+  ml-cli:
+    build:
+      context: .
+      dockerfile: scoring/Dockerfile
+    profiles: ["tools"]
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+    environment: &mlenv
+      CH_HOST: clickhouse
+      CH_USER: analyst
+      CH_PASSWORD: analyst_password
+      MODEL_DIR: /models
+      REPORT_DIR: /reports
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      PYTHONPATH: /app
+    volumes:
+      - ./data:/app/data:ro
+      - models:/models
+      - reports:/reports
+    entrypoint: ["python"]
+
+  fraud-scorer:
+    build:
+      context: .
+      dockerfile: scoring/Dockerfile
+    depends_on:
+      kafka-init:
+        condition: service_completed_successfully
+    environment: *mlenv
+    volumes:
+      - models:/models
+    restart: unless-stopped
+
+  airflow:
+    build:
+      context: .
+      dockerfile: airflow/Dockerfile
+    ports:
+      - "127.0.0.1:8081:8080"
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+    environment:
+      <<: *mlenv
+      AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+      AIRFLOW__CORE__EXECUTOR: SequentialExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: sqlite:////opt/airflow/state/airflow.db
+      PYTHONPATH: /opt/airflow/project
+    volumes:
+      - ./dags:/opt/airflow/dags:ro
+      - ./mlops:/opt/airflow/project/mlops:ro
+      - airflow_state:/opt/airflow/state
+      - models:/models
+      - reports:/reports
+    command: standalone
+    restart: unless-stopped
 
 volumes:
   kafka_data:
   clickhouse_data:
+  models:
+  reports:
+  airflow_state:
