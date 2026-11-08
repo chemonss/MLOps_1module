@@ -31,6 +31,27 @@ docker compose exec clickhouse clickhouse-client --user analyst --password analy
 
 Эта команда предназначена только для первоначальной инициализации при отсутствии записи в `training_state`.
 
+### Подготовка источника данных для dbt
+
+Проект dbt использует представление `transactions_db.transactions`, построенное на основе таблицы `fraud.labeled_transactions` из предыдущего этапа.
+
+Из корня репозитория:
+
+```powershell
+Get-Content -Raw -Encoding UTF8 .\sql\06_dbt_source.sql | docker compose exec -T clickhouse clickhouse-client --multiquery
+```
+**Проверка источника**
+
+```powershell
+docker compose exec clickhouse clickhouse-client --query "SELECT count() AS total, sum(target) AS fraud_count, round(avg(target) * 100, 4) AS fraud_rate_pct FROM transactions_db.transactions"
+```
+
+```powershell
+docker compose exec clickhouse clickhouse-client --query "DESCRIBE TABLE transactions_db.transactions"
+```
+
+Представление не дублирует данные: оно читает их из `fraud.labeled_transactions`. При отсутствии исходной таблицы её необходимо предварительно создать и заполнить по инструкции предыдущего этапа.
+
 ## 2. Apache Airflow
 
 Веб-интерфейс доступен по адресу:
