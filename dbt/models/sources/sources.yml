@@ -1,0 +1,20 @@
+version: 2
+
+sources:
+  - name: transactions_db
+    description: "Исходные транзакции из ClickHouse"
+    schema: transactions_db
+    tables:
+      - name: transactions
+        description: "Транзакции с признаком мошенничества"
+        columns:
+          - name: transaction_time
+            description: "Дата и время транзакции"
+          - name: amount
+            description: "Сумма транзакции"
+          - name: target
+            description: "Признак фрода: 0 — обычная, 1 — мошенническая"
+            data_tests:
+              - not_null
+              - accepted_values:
+                  values: [0, 1]

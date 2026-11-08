@@ -1,0 +1,35 @@
+version: 2
+
+models:
+  - name: stg_transactions
+    description: "Очищенные и нормализованные транзакции для аналитических витрин."
+
+    columns:
+      - name: transaction_time
+        description: "Дата и время транзакции."
+        data_tests:
+          - not_null
+
+      - name: transaction_date
+        description: "Дата транзакции."
+        data_tests:
+          - not_null
+
+      - name: amount
+        description: "Сумма транзакции."
+        data_tests:
+          - not_null
+
+      - name: target
+        description: "Признак мошенничества: 0 или 1."
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: [0, 1]
+
+      - name: amount_bucket
+        description: "Сегмент суммы, рассчитанный макросом amount_bucket."
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ['LOW', 'MEDIUM', 'HIGH', 'VERY_HIGH']

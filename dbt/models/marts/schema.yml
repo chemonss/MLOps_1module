@@ -1,0 +1,223 @@
+version: 2
+
+models:
+  - name: mart_daily_state_metrics
+    description: "Дневные показатели транзакционной активности по штатам США."
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [transaction_date, us_state]
+    columns:
+      - name: transaction_date
+        description: "Дата агрегации."
+        data_tests: [not_null]
+      - name: us_state
+        description: "Штат США."
+        data_tests: [not_null]
+      - name: transaction_count
+        description: "Количество транзакций."
+        data_tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 1
+      - name: total_amount
+        description: "Общая сумма транзакций."
+        data_tests: [not_null]
+      - name: avg_amount
+        description: "Средний чек."
+        data_tests: [not_null]
+      - name: p95_amount
+        description: "95-й процентиль суммы транзакций."
+        data_tests: [not_null]
+      - name: large_transaction_count
+        description: "Количество транзакций с суммой от 200."
+        data_tests: [not_null]
+      - name: large_transaction_share_pct
+        description: "Процент транзакций с суммой от 200."
+        data_tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 100
+
+  - name: mart_fraud_by_category
+    description: "Анализ уровня мошенничества по категориям транзакций."
+    columns:
+      - name: cat_id
+        description: "Категория транзакции."
+        data_tests: [not_null, unique]
+      - name: transaction_count
+        description: "Общее количество транзакций."
+        data_tests: [not_null]
+      - name: fraud_count
+        description: "Количество мошеннических транзакций."
+        data_tests: [not_null]
+      - name: fraud_rate
+        description: "Доля мошеннических транзакций в процентах."
+        data_tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 100
+      - name: total_amount
+        description: "Общая сумма транзакций."
+        data_tests: [not_null]
+      - name: fraud_amount
+        description: "Сумма мошеннических транзакций."
+        data_tests: [not_null]
+      - name: avg_amount
+        description: "Средняя сумма транзакции."
+        data_tests: [not_null]
+
+  - name: mart_fraud_by_state
+    description: "Географический анализ мошенничества по штатам США."
+    columns:
+      - name: us_state
+        description: "Штат США."
+        data_tests: [not_null, unique]
+      - name: transaction_count
+        description: "Общее количество транзакций."
+        data_tests: [not_null]
+      - name: fraud_count
+        description: "Количество мошеннических транзакций."
+        data_tests: [not_null]
+      - name: fraud_rate
+        description: "Доля мошеннических транзакций в процентах."
+        data_tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 100
+      - name: unique_customers
+        description: "Число уникальных комбинаций имени и координат клиента."
+        data_tests: [not_null]
+      - name: unique_merchants
+        description: "Количество уникальных мерчантов."
+        data_tests: [not_null]
+      - name: total_amount
+        description: "Общая сумма транзакций."
+        data_tests: [not_null]
+      - name: fraud_amount
+        description: "Сумма мошеннических транзакций."
+        data_tests: [not_null]
+
+  - name: mart_customer_risk_profile
+    description: "Профиль клиента с историей транзакций и уровнем риска."
+    columns:
+      - name: customer_id
+        description: "Технический идентификатор клиента."
+        data_tests: [not_null, unique]
+      - name: transaction_count
+        description: "Количество транзакций клиента."
+        data_tests: [not_null]
+      - name: fraud_count
+        description: "Количество мошеннических транзакций."
+        data_tests: [not_null]
+      - name: fraud_rate
+        description: "Доля мошеннических операций в процентах."
+        data_tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 100
+      - name: total_amount
+        description: "Общая сумма транзакций клиента."
+        data_tests: [not_null]
+      - name: avg_amount
+        description: "Средний чек клиента."
+        data_tests: [not_null]
+      - name: first_transaction
+        description: "Дата и время первой транзакции."
+        data_tests: [not_null]
+      - name: last_transaction
+        description: "Дата и время последней транзакции."
+        data_tests: [not_null]
+      - name: risk_level
+        description: "Уровень риска клиента."
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ['HIGH', 'MEDIUM', 'LOW']
+
+  - name: mart_hourly_fraud_pattern
+    description: "Распределение мошеннических транзакций по дням недели и часам."
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [day_of_week, transaction_hour]
+    columns:
+      - name: day_of_week
+        description: "День недели от 1 до 7 (понедельник — 1)."
+        data_tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 1
+              max_value: 7
+      - name: transaction_hour
+        description: "Час суток от 0 до 23."
+        data_tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 23
+      - name: transaction_count
+        description: "Общее количество транзакций."
+        data_tests: [not_null]
+      - name: fraud_count
+        description: "Количество мошеннических транзакций."
+        data_tests: [not_null]
+      - name: fraud_rate
+        description: "Доля мошеннических транзакций в процентах."
+        data_tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 100
+      - name: total_amount
+        description: "Общая сумма транзакций."
+        data_tests: [not_null]
+      - name: fraud_amount
+        description: "Сумма мошеннических транзакций."
+        data_tests: [not_null]
+
+  - name: mart_merchant_analytics
+    description: "Аналитика мерчантов: оборот, мошенничество и подозрительная активность."
+    columns:
+      - name: merch
+        description: "Идентификатор мерчанта."
+        data_tests: [not_null, unique]
+      - name: transaction_count
+        description: "Общее количество транзакций."
+        data_tests: [not_null]
+      - name: fraud_count
+        description: "Количество мошеннических транзакций."
+        data_tests: [not_null]
+      - name: fraud_rate
+        description: "Доля мошеннических транзакций в процентах."
+        data_tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 100
+      - name: total_amount
+        description: "Общий оборот мерчанта."
+        data_tests: [not_null]
+      - name: fraud_amount
+        description: "Сумма мошеннических транзакций."
+        data_tests: [not_null]
+      - name: avg_amount
+        description: "Средний чек."
+        data_tests: [not_null]
+      - name: unique_customers
+        description: "Число уникальных комбинаций имени и координат клиента."
+        data_tests: [not_null]
+      - name: first_transaction
+        description: "Дата первой транзакции."
+        data_tests: [not_null]
+      - name: last_transaction
+        description: "Дата последней транзакции."
+        data_tests: [not_null]
+      - name: is_suspicious
+        description: "Признак подозрительного мерчанта: 0 или 1."
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: [0, 1]

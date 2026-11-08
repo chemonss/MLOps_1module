@@ -6,3 +6,9 @@ data/
 models/
 reports/
 logs/
+dbt/target/
+dbt/dbt_packages/
+dbt/logs/
+dbt/.user.yml
+!dbt/models/
+!dbt/models/**

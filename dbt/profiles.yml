@@ -1,0 +1,12 @@
+fraud_analytics:
+  target: dev
+  outputs:
+    dev:
+      type: clickhouse
+      schema: transactions_db
+      host: clickhouse
+      port: 8123
+      user: "{{ env_var('CLICKHOUSE_USER') }}"
+      password: "{{ env_var('CLICKHOUSE_PASSWORD') }}"
+      secure: false
+      threads: 4

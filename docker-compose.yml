@@ -138,6 +138,23 @@ services:
     command: standalone
     restart: unless-stopped
 
+  dbt:
+    build:
+      context: ./dbt
+      dockerfile: Dockerfile
+    working_dir: /app/dbt
+    volumes:
+      - ./dbt:/app/dbt
+    environment:
+      DBT_PROFILES_DIR: /app/dbt
+      CLICKHOUSE_USER: analyst
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-analyst_password}
+    depends_on:
+      - clickhouse
+    profiles:
+      - dbt
+
+
 volumes:
   kafka_data:
   clickhouse_data:

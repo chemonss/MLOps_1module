@@ -1,0 +1,41 @@
+unit_tests:
+  - name: test_mart_fraud_by_category_aggregation
+    description: "Проверка агрегации транзакций по категориям, включая мошеннические суммы и доли."
+    model: mart_fraud_by_category
+    given:
+      - input: ref('stg_transactions')
+        rows:
+          - &base_row
+            transaction_time: '2025-01-01 10:00:00'
+            transaction_date: '2025-01-01'
+            transaction_hour: 10
+            day_of_week: 3
+            merch: 'merchant_a'
+            cat_id: 'shopping'
+            amount: 100.0
+            name_1: 'Test'
+            name_2: 'Customer'
+            gender: 'F'
+            us_state: 'CA'
+            lat: 37.0
+            lon: -122.0
+            merchant_lat: 37.1
+            merchant_lon: -122.1
+            target: 1
+            amount_bucket: 'MEDIUM'
+          - <<: *base_row
+            cat_id: 'shopping'
+            amount: 50.0
+            target: 0
+          - <<: *base_row
+            cat_id: 'travel'
+            amount: 200.0
+            target: 1
+          - <<: *base_row
+            cat_id: 'travel'
+            amount: 300.0
+            target: 0
+    expect:
+      rows:
+        - {cat_id: 'shopping', transaction_count: 2, fraud_count: 1, fraud_rate: 50.0, total_amount: 150.0, fraud_amount: 100.0, avg_amount: 75.0}
+        - {cat_id: 'travel', transaction_count: 2, fraud_count: 1, fraud_rate: 50.0, total_amount: 500.0, fraud_amount: 200.0, avg_amount: 250.0}

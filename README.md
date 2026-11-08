@@ -1,4 +1,4 @@
-# MLOps 3
+# MLOps 4
 
 ## 1. Запуск проекта
 
@@ -30,27 +30,6 @@ docker compose exec clickhouse clickhouse-client --user analyst --password analy
 ```
 
 Эта команда предназначена только для первоначальной инициализации при отсутствии записи в `training_state`.
-
-### Подготовка источника данных для dbt
-
-Проект dbt использует представление `transactions_db.transactions`, построенное на основе таблицы `fraud.labeled_transactions` из предыдущего этапа.
-
-Из корня репозитория:
-
-```powershell
-Get-Content -Raw -Encoding UTF8 .\sql\06_dbt_source.sql | docker compose exec -T clickhouse clickhouse-client --multiquery
-```
-**Проверка источника**
-
-```powershell
-docker compose exec clickhouse clickhouse-client --query "SELECT count() AS total, sum(target) AS fraud_count, round(avg(target) * 100, 4) AS fraud_rate_pct FROM transactions_db.transactions"
-```
-
-```powershell
-docker compose exec clickhouse clickhouse-client --query "DESCRIBE TABLE transactions_db.transactions"
-```
-
-Представление не дублирует данные: оно читает их из `fraud.labeled_transactions`. При отсутствии исходной таблицы её необходимо предварительно создать и заполнить по инструкции предыдущего этапа.
 
 ## 2. Apache Airflow
 
@@ -236,3 +215,127 @@ docker compose up -d
 ```
 
 Для сохранения загруженных данных, моделей и состояния Airflow не следует удалять именованные Docker volumes.
+
+## 10. Аналитический слой dbt (ClickHouse)
+
+В проект добавлен аналитический слой на **dbt Core 1.9.8** с адаптером **dbt-clickhouse 1.9.2**. Он преобразует исходные транзакции ClickHouse в витрины для анализа мошенничества. Все команды ниже выполняются из корня репозитория при запущенном Docker Desktop.
+
+### Архитектура и зависимости
+
+```text
+transactions_db.transactions (source)
+             |
+             v
+      stg_transactions (view)
+             |
+             +-- mart_daily_state_metrics
+             +-- mart_fraud_by_category
+             +-- mart_fraud_by_state
+             +-- mart_customer_risk_profile
+             +-- mart_hourly_fraud_pattern
+             +-- mart_merchant_analytics
+```
+
+Staging-модель приводит исходные поля к удобному для анализа виду, добавляет дату, час, день недели и категорию суммы транзакции. Для последней используется собственный Jinja-макрос `amount_bucket`.
+
+**Граф зависимостей (dbt Lineage Graph):**
+
+![Граф зависимостей dbt](results/hw4.png)
+
+### Аналитические витрины
+
+| Модель | Назначение |
+|---|---|
+| `mart_daily_state_metrics` | Ежедневные показатели транзакций и мошенничества по штатам |
+| `mart_fraud_by_category` | Частота мошенничества, количество и суммы операций по категориям |
+| `mart_fraud_by_state` | Анализ мошенничества по штатам |
+| `mart_customer_risk_profile` | Агрегированный профиль клиента и категория риска `HIGH` / `MEDIUM` / `LOW` |
+| `mart_hourly_fraud_pattern` | Распределение мошенничества по дням недели и часам |
+| `mart_merchant_analytics` | Показатели мерчантов и признак подозрительной активности |
+
+`stg_transactions` материализуется как `view`, шесть аналитических витрин — как `table`.
+
+### Запуск dbt
+
+Установка зависимостей dbt:
+
+```bash
+docker compose run --rm dbt deps
+```
+
+Построение моделей:
+
+```bash
+docker compose run --rm dbt run
+```
+
+Полная сборка с тестами:
+
+```bash
+docker compose run --rm dbt build
+```
+
+Отдельный запуск тестов:
+
+```bash
+docker compose run --rm dbt test
+```
+
+### Проверки качества
+
+Реализованы **79 тестов**:
+
+- **76 generic tests**: проверки значений, диапазонов, уникальности и других ограничений моделей;
+- **2 singular SQL tests**: `assert_fraud_counts_valid` и `assert_customer_transaction_dates_valid`;
+- **1 unit test**: `test_mart_fraud_by_category_aggregation`, проверяющий агрегацию на заданных тестовых транзакциях.
+
+В ходе локальной проверки все 79 тестов прошли успешно (generic и singular — при отдельных запусках, unit — отдельно). Для воспроизведения общего результата рекомендуется запускать `dbt build`.
+
+Используются пакеты `dbt_utils` и `dbt_expectations`, подключённые через `dbt/packages.yml`.
+
+### SQLFluff и pre-commit
+
+Для проверки SQL используется **SQLFluff 3.3.1** с диалектом ClickHouse и dbt-templater. Конфигурация находится в `dbt/.sqlfluff`.
+
+Проверка всех SQL-моделей:
+
+```bash
+docker compose run --rm --entrypoint sqlfluff dbt lint models
+```
+
+В корне репозитория находится `.pre-commit-config.yaml`: локальный Git-хук запускает SQLFluff в Docker. Для ручной проверки на Windows (при установленном `pre-commit`):
+
+```powershell
+python -m pre_commit run --all-files
+```
+
+Проверка выполняется перед коммитом, если хук установлен командой `python -m pre_commit install`. Для её работы необходим запущенный Docker Desktop.
+
+### Makefile
+
+В корне репозитория предусмотрен `Makefile` с целями `dbt-deps`, `dbt-run`, `dbt-test`, `dbt-build`, `dbt-docs`, `lint` и `check`. Например, при наличии GNU Make:
+
+```bash
+make dbt-build
+make lint
+```
+
+На Windows, если `make` не установлен, можно запускать соответствующие команды `docker compose` напрямую.
+
+### Документация dbt
+
+Сгенерировать документацию и каталог объектов:
+
+```bash
+docker compose run --rm dbt docs generate
+```
+
+Открыть локальный интерфейс dbt Docs:
+
+```bash
+docker compose run --rm -p 8085:8085 dbt docs serve --host 0.0.0.0 --port 8085
+```
+
+Адрес интерфейса: http://localhost:8085. 
+
+Каталоги `dbt/target/`, `dbt/dbt_packages/` и `dbt/logs/` содержат генерируемые артефакты и устанавливаемые зависимости; их следует исключить из Git через `.gitignore`.

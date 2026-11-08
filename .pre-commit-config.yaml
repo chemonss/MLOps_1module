@@ -1,0 +1,9 @@
+repos:
+  - repo: local
+    hooks:
+      - id: sqlfluff-lint
+        name: SQLFluff lint (dbt + ClickHouse)
+        entry: docker compose run --rm --entrypoint sqlfluff dbt lint models
+        language: system
+        pass_filenames: false
+        files: ^dbt/(models|tests)/.*\.sql$
