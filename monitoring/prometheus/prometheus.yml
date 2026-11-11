@@ -1,0 +1,20 @@
+﻿global:
+  scrape_interval: 1s
+  evaluation_interval: 1s
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: ["prometheus:9090"]
+
+  - job_name: fraud-scorer
+    static_configs:
+      - targets: ["fraud-scorer:8000"]
+
+  - job_name: results-writer
+    static_configs:
+      - targets: ["results-writer:8000"]
+
+  - job_name: node-exporter
+    static_configs:
+      - targets: ["node-exporter:9100"]

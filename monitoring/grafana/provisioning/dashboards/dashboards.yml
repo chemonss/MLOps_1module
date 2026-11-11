@@ -1,0 +1,11 @@
+﻿apiVersion: 1
+
+providers:
+  - name: Fraud Monitoring
+    orgId: 1
+    folder: Fraud Detection
+    type: file
+    disableDeletion: false
+    allowUiUpdates: false
+    options:
+      path: /var/lib/grafana/dashboards
