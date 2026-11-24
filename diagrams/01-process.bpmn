@@ -1,0 +1,307 @@
+<?xml version='1.0' encoding='utf-8'?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_Push" targetNamespace="urn:retail-banking:marketing-notification">
+  <bpmn:process id="Process_Push" name="Решение об отправке одного маркетингового push-уведомления" isExecutable="false">
+    <bpmn:laneSet id="Lanes">
+      <bpmn:lane id="Lane_crm" name="CRM-платформа">
+        <bpmn:flowNodeRef>Start</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>B01</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>G2</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>B06</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>B07</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>B08</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EndD</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EndS</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_dec" name="Сервис решений">
+        <bpmn:flowNodeRef>B02</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>G1</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>B04</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>B05</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_ml" name="ML-сервис">
+        <bpmn:flowNodeRef>B03</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_data" name="Контур данных">
+        <bpmn:flowNodeRef>B09</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>B10</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EndF</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+    <bpmn:startEvent id="Start" name="Срок отправки">
+      <bpmn:outgoing>F1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:task id="B01" name="B01 · Запросить решение об отправке">
+      <bpmn:incoming>F1</bpmn:incoming>
+      <bpmn:outgoing>F2</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="G2" name="Действие?">
+      <bpmn:incoming>F8</bpmn:incoming>
+      <bpmn:outgoing>F9</bpmn:outgoing>
+      <bpmn:outgoing>F10</bpmn:outgoing>
+      <bpmn:outgoing>F11</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="B06" name="B06 · Отправить уведомление">
+      <bpmn:incoming>F9</bpmn:incoming>
+      <bpmn:outgoing>F14</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="B07" name="B07 · Перенести попытку">
+      <bpmn:incoming>F10</bpmn:incoming>
+      <bpmn:outgoing>F12</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="B08" name="B08 · Отменить отправку">
+      <bpmn:incoming>F11</bpmn:incoming>
+      <bpmn:outgoing>F13</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:endEvent id="EndD" name="Отложено">
+      <bpmn:incoming>F12</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:endEvent id="EndS" name="Отменено">
+      <bpmn:incoming>F13</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:task id="B02" name="B02 · Запросить прогноз">
+      <bpmn:incoming>F2</bpmn:incoming>
+      <bpmn:outgoing>F3</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="G1" name="Прогноз пригоден?">
+      <bpmn:incoming>F4</bpmn:incoming>
+      <bpmn:outgoing>F5</bpmn:outgoing>
+      <bpmn:outgoing>F6</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="B04" name="B04 · Применить запасное правило">
+      <bpmn:incoming>F6</bpmn:incoming>
+      <bpmn:outgoing>F7</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="B05" name="B05 · Проверить согласие и лимит; выбрать и записать действие">
+      <bpmn:incoming>F5</bpmn:incoming>
+      <bpmn:incoming>F7</bpmn:incoming>
+      <bpmn:outgoing>F8</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="B03" name="B03 · Рассчитать риск отписки или жалобы">
+      <bpmn:incoming>F3</bpmn:incoming>
+      <bpmn:outgoing>F4</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="B09" name="B09 · Связать события с решением">
+      <bpmn:incoming>F14</bpmn:incoming>
+      <bpmn:outgoing>F15</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="B10" name="B10 · Сформировать метку или исключить пример">
+      <bpmn:incoming>F15</bpmn:incoming>
+      <bpmn:outgoing>F16</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:endEvent id="EndF" name="Исход учтён">
+      <bpmn:incoming>F16</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="F1" sourceRef="Start" targetRef="B01" />
+    <bpmn:sequenceFlow id="F2" sourceRef="B01" targetRef="B02" />
+    <bpmn:sequenceFlow id="F3" sourceRef="B02" targetRef="B03" />
+    <bpmn:sequenceFlow id="F4" sourceRef="B03" targetRef="G1" />
+    <bpmn:sequenceFlow id="F5" sourceRef="G1" targetRef="B05" name="Да: получен пригодный прогноз" />
+    <bpmn:sequenceFlow id="F6" sourceRef="G1" targetRef="B04" name="Нет" />
+    <bpmn:sequenceFlow id="F7" sourceRef="B04" targetRef="B05" />
+    <bpmn:sequenceFlow id="F8" sourceRef="B05" targetRef="G2" name="Решение и причина" />
+    <bpmn:sequenceFlow id="F9" sourceRef="G2" targetRef="B06" name="SEND" />
+    <bpmn:sequenceFlow id="F10" sourceRef="G2" targetRef="B07" name="DEFER" />
+    <bpmn:sequenceFlow id="F11" sourceRef="G2" targetRef="B08" name="SUPPRESS" />
+    <bpmn:sequenceFlow id="F12" sourceRef="B07" targetRef="EndD" />
+    <bpmn:sequenceFlow id="F13" sourceRef="B08" targetRef="EndS" />
+    <bpmn:sequenceFlow id="F14" sourceRef="B06" targetRef="B09" name="Факт отправки и последующие события" />
+    <bpmn:sequenceFlow id="F15" sourceRef="B09" targetRef="B10" name="Наблюдение завершено" />
+    <bpmn:sequenceFlow id="F16" sourceRef="B10" targetRef="EndF" />
+    <bpmn:textAnnotation id="RiskNote">
+      <bpmn:text>B05. Приоритет условий при выборе действия
+1. Нет согласия или невозможно проверить согласие либо лимит → отменить.
+2. Нет пригодного прогноза или признаки старше 60 с → отложить.
+3. Пригодный прогноз: риск ≥ 0,15 → отменить.
+4. Риск от 0,05 до 0,15 (не включая 0,15) → отложить.
+5. Риск &lt; 0,05: лимит исчерпан → отложить; есть резерв → отправить.</bpmn:text>
+    </bpmn:textAnnotation>
+  </bpmn:process>
+  <bpmn:collaboration id="Collaboration">
+    <bpmn:participant id="Bank" name="Розничный банк: решение об отправке уведомления" processRef="Process_Push" />
+  </bpmn:collaboration>
+  <bpmndi:BPMNDiagram id="Diagram" name="Решение об отправке одного маркетингового push-уведомления">
+    <bpmndi:BPMNPlane id="Plane" bpmnElement="Collaboration">
+      <bpmndi:BPMNShape id="DI_Bank" bpmnElement="Bank" isHorizontal="true">
+        <dc:Bounds x="10" y="128" width="1890" height="755" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="DI_Lane_crm" bpmnElement="Lane_crm" isHorizontal="true">
+        <dc:Bounds x="40" y="128" width="1860" height="260" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="DI_Lane_dec" bpmnElement="Lane_dec" isHorizontal="true">
+        <dc:Bounds x="40" y="388" width="1860" height="220" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="DI_Lane_ml" bpmnElement="Lane_ml" isHorizontal="true">
+        <dc:Bounds x="40" y="608" width="1860" height="143" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="DI_Lane_data" bpmnElement="Lane_data" isHorizontal="true">
+        <dc:Bounds x="40" y="751" width="1860" height="132" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="DI_RiskNote" bpmnElement="RiskNote">
+        <dc:Bounds x="547" y="154" width="615" height="150" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="DI_Start" bpmnElement="Start">
+        <dc:Bounds x="228" y="235" width="40" height="40" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="175.5" y="282" width="145" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="DI_B01" bpmnElement="B01">
+        <dc:Bounds x="327" y="219" width="186" height="74" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="DI_G2" bpmnElement="G2" isMarkerVisible="true">
+        <dc:Bounds x="1258" y="218" width="72" height="72" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1105" y="245" width="145" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="DI_B06" bpmnElement="B06">
+        <dc:Bounds x="1449" y="149" width="200" height="57" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="DI_B07" bpmnElement="B07">
+        <dc:Bounds x="1455" y="226" width="194" height="57" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="DI_B08" bpmnElement="B08">
+        <dc:Bounds x="1455" y="303" width="194" height="57" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="DI_EndD" bpmnElement="EndD">
+        <dc:Bounds x="1730" y="234" width="39" height="39" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1677.0" y="280" width="145" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="DI_EndS" bpmnElement="EndS">
+        <dc:Bounds x="1730" y="311" width="39" height="39" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1677.0" y="357" width="145" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="DI_B02" bpmnElement="B02">
+        <dc:Bounds x="327" y="454" width="186" height="68" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="DI_G1" bpmnElement="G1" isMarkerVisible="true">
+        <dc:Bounds x="780" y="449" width="72" height="72" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="743.5" y="423" width="145" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="DI_B04" bpmnElement="B04">
+        <dc:Bounds x="913" y="523" width="203" height="63" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="DI_B05" bpmnElement="B05">
+        <dc:Bounds x="1167" y="442" width="254" height="84" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="DI_B03" bpmnElement="B03">
+        <dc:Bounds x="608" y="640" width="185" height="70" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="DI_B09" bpmnElement="B09">
+        <dc:Bounds x="1566" y="781" width="231" height="67" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="DI_B10" bpmnElement="B10">
+        <dc:Bounds x="1169" y="781" width="238" height="67" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="DI_EndF" bpmnElement="EndF">
+        <dc:Bounds x="993" y="795" width="40" height="40" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="940.5" y="842" width="145" height="20" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="DI_F1" bpmnElement="F1">
+        <di:waypoint x="268" y="255" />
+        <di:waypoint x="327" y="255" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DI_F2" bpmnElement="F2">
+        <di:waypoint x="420" y="293" />
+        <di:waypoint x="420" y="454" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DI_F3" bpmnElement="F3">
+        <di:waypoint x="513" y="485" />
+        <di:waypoint x="598" y="485" />
+        <di:waypoint x="598" y="675" />
+        <di:waypoint x="608" y="675" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DI_F4" bpmnElement="F4">
+        <di:waypoint x="700" y="640" />
+        <di:waypoint x="700" y="485" />
+        <di:waypoint x="780" y="485" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DI_F5" bpmnElement="F5">
+        <di:waypoint x="852" y="485" />
+        <di:waypoint x="1167" y="485" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="930" y="456" width="140" height="32" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DI_F6" bpmnElement="F6">
+        <di:waypoint x="816" y="521" />
+        <di:waypoint x="816" y="555" />
+        <di:waypoint x="913" y="555" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="793" y="533" width="140" height="32" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DI_F7" bpmnElement="F7">
+        <di:waypoint x="1116" y="555" />
+        <di:waypoint x="1294" y="555" />
+        <di:waypoint x="1294" y="526" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DI_F8" bpmnElement="F8">
+        <di:waypoint x="1294" y="442" />
+        <di:waypoint x="1294" y="290" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1317" y="391" width="140" height="32" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DI_F9" bpmnElement="F9">
+        <di:waypoint x="1294" y="218" />
+        <di:waypoint x="1294" y="177" />
+        <di:waypoint x="1449" y="177" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1298" y="151" width="140" height="32" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DI_F10" bpmnElement="F10">
+        <di:waypoint x="1330" y="254" />
+        <di:waypoint x="1455" y="254" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1320" y="226" width="140" height="32" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DI_F11" bpmnElement="F11">
+        <di:waypoint x="1312" y="272" />
+        <di:waypoint x="1312" y="331" />
+        <di:waypoint x="1455" y="331" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1342" y="302" width="140" height="32" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DI_F12" bpmnElement="F12">
+        <di:waypoint x="1649" y="254" />
+        <di:waypoint x="1730" y="254" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DI_F13" bpmnElement="F13">
+        <di:waypoint x="1649" y="331" />
+        <di:waypoint x="1730" y="331" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DI_F14" bpmnElement="F14">
+        <di:waypoint x="1649" y="177" />
+        <di:waypoint x="1838" y="177" />
+        <di:waypoint x="1838" y="815" />
+        <di:waypoint x="1797" y="815" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1620" y="657" width="140" height="32" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DI_F15" bpmnElement="F15">
+        <di:waypoint x="1566" y="815" />
+        <di:waypoint x="1407" y="815" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1418" y="764" width="140" height="32" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DI_F16" bpmnElement="F16">
+        <di:waypoint x="1169" y="815" />
+        <di:waypoint x="1033" y="815" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
